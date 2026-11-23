@@ -28,17 +28,19 @@
 
 **Files:** `src/tree.cjs`, `test/tree.test.cjs`. **Interface:** `loadTree(client, sessionID, signal)` returns the root and nested rows `{id, agent, task, state, children}`. Session endpoints are those confirmed in the installed server’s `/openapi.json`.
 
-- [ ] Add fixture tests with a root, paginated siblings, a grandchild, a foreign root, a resumed child and an idle child. Assert hierarchy, uniqueness, latest assignment, and statuses for writing, tool use, success, failure, interruption and idle.
-- [ ] Run `node --test test/tree.test.cjs`; verify missing implementation makes it fail.
-- [ ] Implement the loader using session outcome/timestamps for history, current activity for busy sessions and job descriptions for assignments. Propagate errors and cancellation.
-- [ ] Run the same tests; require all pass. Commit the tested loader.
+- [x] Add fixture tests with a root, paginated siblings, a grandchild, a foreign root, a resumed child and an idle child. Assert hierarchy, uniqueness, latest assignment, and statuses for writing, tool use, success, failure, interruption and idle.
+- [x] Run `node --test test/tree.test.cjs`; verify missing implementation makes it fail.
+- [x] Implement the loader using session outcome/timestamps for history, current activity for busy sessions and job descriptions for assignments. Propagate errors and cancellation.
+- [x] Run the same tests; require all pass. Commit the tested loader.
 
 ### Task 2: Register, install and open the Desktop panel
 
 **Files:** `src/gui.cjs`, `build.cjs`, `test/panel.test.cjs`; install `gui-experimental.cjs` to `~/.config/opencode/local-themes/agent-tree/`. The build produces one CommonJS file containing the loader and GUI code. Change only the global plugin list.
 
-- [ ] Test the session lifecycle with a deferred old request: select another session before it resolves and assert only new rows appear. Assert failed requests show an error, retry recovers, and closing cancels updates.
-- [ ] Run `node --test test/panel.test.cjs`; confirm it fails before the panel exists.
-- [ ] Register «Агенты» with `MenuItem` and `Panel` for Desktop only. Subscribe while mounted, reconcile on session change and reconnection, and render task and status as text with nested rows.
-- [ ] Run `node --test` and `node build.cjs`; install the bundle and add the global plugin entry. Verify discovery from two project locations.
-- [ ] Open the actual Desktop launcher and select «Агенты». Verify the panel renders a root, check a historical tree against the server, and record exactly which checks passed. Commit and push plugin changes for review.
+- [x] Test the session lifecycle with a deferred old request: select another session before it resolves and assert only new rows appear. Assert failed requests show an error, retry recovers, and closing cancels updates.
+- [x] Run `node --test test/panel.test.cjs`; confirm it fails before the panel exists.
+- [x] Register «Агенты» with `MenuItem` and `Panel` for Desktop only. Subscribe while mounted, reconcile on session change and reconnection, and render task and status as text with nested rows.
+- [x] Run `node --test` and `node build.cjs`; install the bundle and add the global plugin entry. Verify discovery from two project locations.
+- [x] Open the actual Desktop launcher and select «Агенты». Verify the panel renders a root, check a historical tree against the server, and record exactly which checks passed. Commit and push plugin changes for review.
+
+**Installation evidence (Windows, Desktop 2.3.2):** UI Automation invoked the native «Агенты» button and found a tab, a list with the main agent, live shell activity, and the no-children hint. In another conversation, 10 visible finished child rows matched the server's saved session titles and successful outcomes. Two distinct project locations reported the global GUI plugin active.
