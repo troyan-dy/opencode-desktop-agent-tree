@@ -3,6 +3,7 @@ const {createRoot,getOwner,createEffect,createMemo,createSignal,createComponent,
 const {insert}=require("solid-js/web");
 const {el}=require("./card-view.cjs");
 const {timeline,rows,icon}=require("./timeline.cjs");
+const {contextRing}=require("./context-ring.cjs");
 
 const css=`
 .oc-agent-preview-layer{position:fixed;inset:auto;box-sizing:border-box;max-width:none;max-height:none;margin:0;border:0;background:transparent;pointer-events:none;padding:clamp(10px,1.7vmin,24px);display:grid;min-width:0;min-height:0;overflow:visible}
@@ -36,11 +37,14 @@ const css=`
 .oc-agent-preview .ap-foot{flex:none;min-width:0;display:flex;align-items:center;gap:8px;height:32px;padding:0 8px 0 12px;
  font:440 12px/16px var(--v2-font-family-sans,system-ui);color:var(--v2-text-text-faint,GrayText)}
 .oc-agent-preview .ap-foot-label{min-width:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oc-agent-preview .ap-context{flex:none;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--v2-text-text-muted,GrayText)}
+.oc-agent-preview{container-type:inline-size}
+@container(max-width:480px){.oc-agent-preview .ap-back-label{display:none}}
 .oc-agent-preview .ap-return{flex:none;display:inline-flex;align-items:center;gap:6px;cursor:pointer}
 `;
 
 // Own only this preview. The main timeline, composer and sidebar never change route or owner.
-function createPreview(ui,copy=text=>navigator.clipboard.writeText(text)){
+function createPreview(ui,copy,lastAssistantWithUsage){
   // Callbacks run outside Solid. Markdown needs the owning Desktop window's providers.
   const owner=getOwner();
   let current;
@@ -67,8 +71,8 @@ function createPreview(ui,copy=text=>navigator.clipboard.writeText(text)){
       insert(header,createComponent(ui.IconButton,{class:"ap-close",icon:"close",size:"small",variant:"ghost-muted",label:"Закрыть диалог агента",onClick:()=>finish(true)}));
       const feed=el("div","ap-feed"),column=el("div","ap-column"),more=el("button","ap-aux","Показать предыдущие сообщения"),notice=el("div","ap-notice"),retry=el("button","ap-aux","Повторить"),messages=el("div","ap-messages");
       more.type=retry.type="button";notice.setAttribute("role","status");feed.tabIndex=0;
-      const foot=el("footer","ap-foot"),caption=el("span","ap-foot-label"),back=el("button","ap-return","Вернуться к основной сессии");
-      back.type="button";back.onclick=()=>finish(true);
+      const foot=el("footer","ap-foot"),caption=el("span","ap-foot-label"),back=el("button","ap-return"),backLabel="Вернуться к основной сессии";
+      back.type="button";back.onclick=()=>finish(true);back.setAttribute("aria-label",backLabel);back.append(el("span","ap-back-label",backLabel));
       insert(back,createComponent(ui.Keybind,{keys:["Esc"],variant:"neutral"}));
       const running=()=>sessions.status(id)==="running";
       const [now,setNow]=createSignal(Date.now());
@@ -85,7 +89,7 @@ function createPreview(ui,copy=text=>navigator.clipboard.writeText(text)){
         const agent=i?.agent||last()?.agent,modelName=model&&i?.location&&server.data.location?.model?.list(i.location)?.find(m=>m.id===model.id&&m.providerID===model.providerID)?.name;
         return [label,duration,agent && (agent[0].toUpperCase()+agent.slice(1)),[model?.providerID,modelName||model?.id].filter(Boolean).join(" / "),model?.variant==="default"?"":model?.variant].filter(Boolean).join("  ·  ");
       });
-      foot.append(caption,back);
+      foot.append(caption,contextRing(server,id,lastAssistantWithUsage),back);
       column.append(more,notice,retry,messages);feed.append(column);dialog.append(header,feed,foot);layer.append(dialog);
       // The composer is portalled above the chat's stacking context. Top layer, not a larger z-index.
       layer.popover="manual";host.append(layer);

@@ -1,6 +1,7 @@
 "use strict";
 const {Plugin, Panel, MenuItem, Style}=require("@opencode/plugin/gui");
 const {createEffect,onCleanup,untrack}=require("solid-js");
+const {lastAssistantWithUsage}=require("@opencode/client/solid");
 const {watchTree}=require("./watch.cjs");
 
 const {createCardView,css,el}=require("./card-view.cjs");
@@ -14,7 +15,7 @@ function panel(props,ctx){
   note.setAttribute("role","status");
   box.append(note,branch);
   createEffect(()=>{
-    const session=props.session, id=session.id, server=session.server,preview=createPreview(ctx.ui,text=>ctx.system.copy(text));
+    const session=props.session, id=session.id, server=session.server,preview=createPreview(ctx.ui,text=>ctx.system.copy(text),lastAssistantWithUsage);
     onCleanup(()=>preview.close(false));
     const render=createCardView(branch,count,(row,trigger)=>{
       if(!preview.open(server,row,trigger))ctx.toast.show({title:"Область чата недоступна"});

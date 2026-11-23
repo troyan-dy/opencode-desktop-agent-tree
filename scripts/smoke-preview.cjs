@@ -17,9 +17,12 @@ async function scenario(){
   },async loadMore(id,opts){
     closeSignal=opts.signal;opts.beforePublish();setRows(r=>[{id:"older",type:"user",text:"Previous task"},...r]);setMore(false);
   }};
-  const server={get connected(){return online()},data:{session:{message:store,get:()=>({agent:"general",model:{id:"example"},outcome:"succeeded",time:{created:1,idle:3001}}),status:()=>"idle"}}};
+  const [limit,setLimit]=solid.createSignal(100000);
+  const server={get connected(){return online()},data:{location:{model:{list:()=>[
+    {id:"example",providerID:"other",limit:{context:10000}},{id:"example",providerID:"p",limit:{context:limit()}}]}},
+    session:{message:store,get:()=>({agent:"general",location:{directory:"/demo"},model:{providerID:"other",id:"example"},outcome:"succeeded",time:{created:1,idle:3001}}),status:()=>"idle"}}};
   const uiButton=props=>{const b=document.createElement("button");b.type="button";b.className=props.class||"";b.textContent=props.label||props.children;b.setAttribute("aria-label",props.label||"");b.onclick=props.onClick;return b};
-  const p=transcript.createPreview({Markdown:props=>()=>props.text,IconButton:uiButton,Button:uiButton,Icon:()=>document.createElement("i"),Keybind:()=>document.createTextNode("Esc")});
+  const p=transcript.createPreview({Markdown:props=>()=>props.text,IconButton:uiButton,Button:uiButton,Icon:()=>document.createElement("i"),Keybind:()=>document.createTextNode("Esc")},()=>{},messages=>messages.findLast(m=>m.type==="assistant"&&m.tokens));
   const find=sel=>document.querySelector(".oc-agent-preview "+sel);
   const open=id=>p.open(server,{id,title:"Test "+id},card);
   open("child");await step();
@@ -45,6 +48,17 @@ async function scenario(){
   check(find(".ap-feed").innerText.includes("Result one"),"live update collapsed a group");
   check(find('footer')?.innerText.includes("Готово"),"missing native-style child status");
   check(!find(".ap-feed").innerText.split("\n").some(x=>x==="Агент"||x==="Поручение"),"repeated role captions");
+  const meter=find("footer .ap-context");
+  check(meter && meter.textContent.includes("—") && !meter.textContent.includes("%"),"missing measurement presented as zero");
+  const tokens=(input)=>({input,output:1500,reasoning:500,cache:{read:2000,write:1000}});
+  setRows(r=>[...r,{id:"usage1",type:"assistant",model:{providerID:"p",id:"example"},tokens:tokens(20000),content:[]}]);await step();
+  const flat=()=>meter.textContent.replace(/[\s\u202f]/g,"");
+  const arc=meter.querySelector('[data-slot="progress-circle-progress"]');
+  check(flat().includes("25000") && flat().includes("25%") && +arc.getAttribute("stroke-dashoffset")===75,"wrong model, count or quarter-circle");
+  setRows(r=>[...r,{id:"usage2",type:"assistant",model:{providerID:"p",id:"example"},tokens:tokens(35000),content:[]}]);await step();
+  check(flat().includes("40000") && flat().includes("40%") && +arc.getAttribute("stroke-dashoffset")===60,"did not replace latest context measurement");
+  setLimit(undefined);await step();
+  check(flat().includes("40000") && !flat().includes("%") && arc.ownerSVGElement.hasAttribute("hidden"),"unknown capacity fabricated a percentage");
   find(".ap-feed button").click();await step();
   check(find(".ap-feed").innerText.includes("Previous task"),"older page missing");
   setOnline(false);await step();check(find(".ap-notice").textContent.includes("Нет связи"),"offline state missing");
@@ -64,7 +78,7 @@ async function scenario(){
 const temp=fs.mkdtempSync(path.join(os.tmpdir(),"oc-overlay-"));
 try{
   const sources={"solid-js":path.join(process.argv[3],"dist/solid.cjs"),"solid-js/web":path.join(process.argv[3],"web/dist/web.cjs")};
-  for(const n of ["cards","card-view","timeline","transcript"])sources["./"+n+".cjs"]=path.join(__dirname,"../src",n+".cjs");
+  for(const n of ["cards","card-view","timeline","context-ring","transcript"])sources["./"+n+".cjs"]=path.join(__dirname,"../src",n+".cjs");
   const factories=Object.entries(sources).map(([id,file])=>JSON.stringify(id)+":function(require,module,exports){"+fs.readFileSync(file,"utf8")+"\n}");
   const file=path.join(temp,"test.html");
   fs.writeFileSync(file,`<!doctype html><meta charset=utf-8><style>[data-pane-row]{display:flex;height:90vh}aside{width:25%;overflow:auto}main{position:relative;flex:1}</style>
