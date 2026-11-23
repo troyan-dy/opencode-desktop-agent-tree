@@ -14,7 +14,7 @@ function panel(props,ctx){
   note.setAttribute("role","status");
   box.append(note,branch);
   createEffect(()=>{
-    const session=props.session, id=session.id, server=session.server,preview=createPreview(ctx.ui);
+    const session=props.session, id=session.id, server=session.server,preview=createPreview(ctx.ui,text=>ctx.system.copy(text));
     onCleanup(()=>preview.close(false));
     const render=createCardView(branch,count,(row,trigger)=>{
       if(!preview.open(server,row,trigger))ctx.toast.show({title:"Область чата недоступна"});
