@@ -4,7 +4,8 @@ const {createEffect,onCleanup,untrack}=require("solid-js");
 const {watchTree}=require("./watch.cjs");
 
 const {createCardView,css,el}=require("./card-view.cjs");
-function panel(props){
+const {createPreview,css:previewCss}=require("./transcript.cjs");
+function panel(props,ctx){
   const box=el("section","oc-agent-tree");
   box.setAttribute("aria-label","Дерево агентов");
   const header=el("div","at-head"),count=el("span","at-count");
@@ -13,12 +14,11 @@ function panel(props){
   note.setAttribute("role","status");
   box.append(note,branch);
   createEffect(()=>{
-    const session=props.session, id=session.id, server=session.server;
-    // The native composer opens /server/<base64url server key>/session/<id>.
-    // Keep this link scoped to the mounted panel, including remote servers.
-    const bytes=new TextEncoder().encode(server.id);
-    const key=btoa(Array.from(bytes,byte=>String.fromCharCode(byte)).join("")).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
-    const render=createCardView(branch,count,target=>`/server/${key}/session/${encodeURIComponent(target)}`);
+    const session=props.session, id=session.id, server=session.server,preview=createPreview(ctx.ui);
+    onCleanup(()=>preview.close(false));
+    const render=createCardView(branch,count,(row,trigger)=>{
+      if(!preview.open(server,row,trigger))ctx.toast.show({title:"Область чата недоступна"});
+    });
     const view=untrack(()=>watchTree(server,id,update=>{
       render(update);
       if(update.changed)return;
@@ -39,9 +39,9 @@ exports.default=Plugin.define({
     if(ctx.app.platform!=="desktop")return;
     const tab={id:"tree",title:"Агенты",closable:"compact",fallback:true,tabbable:true};
     const key=`${ctx.id}:tree`;
-    ctx.add(Style,css);
+    ctx.add(Style,css+previewCss);
     ctx.add(Panel,{id:"tree",region:"side",width:"narrow",
-      list:({open})=>open.includes(tab.id)?[tab]:[], render:panel});
+      list:({open})=>open.includes(tab.id)?[tab]:[], render:props=>panel(props,ctx)});
     ctx.add(MenuItem,()=>{
       const s=ctx.sessions.current();
       if(s)return {menu:"session.panel",id:"show-tree",title:"Агенты",icon:"file-tree",order:0,
