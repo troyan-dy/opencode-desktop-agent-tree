@@ -75,8 +75,7 @@ function createCardView(branch,count){
         const limb=el("ul","at-limb");li.append(limb);
         for(const child of row.visible)limb.append(item(child));
         if(row.finished.length){
-          const hidden=row.finished.reduce((sum,n)=>sum+1+n.count,0);
-          const entry=el("li"),fold=el("details"),summary=el("summary","",`Завершённые · ${hidden}`),list=el("ul");
+          const entry=el("li"),fold=el("details"),summary=el("summary","",`Завершённые · ${row.finished.length}`),list=el("ul");
           summary.dataset.historyFor=row.id;summaries.set(row.id,summary);fold.open=opened.has(row.id);
           for(const child of row.finished)list.append(item(child));
           fold.append(summary,list);entry.append(fold);limb.append(entry);

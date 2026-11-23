@@ -27,7 +27,9 @@ Existing global launcher, Russian UI, no new dependencies in the installed bundl
 **Files:** `src/cards.cjs`, `src/gui.cjs`, `build.cjs`, `test/cards.test.cjs`, `README.md`.
 **Interface:** `cardMap(row)` produces a card view model with title, role, state appearance, child count, visible children and finished children. The GUI renders it and preserves native disclosure state per parent and session.
 
-- [ ] Add regression tests for titles and roles, counts, state distinctions, nested grouping, resumption and empty sessions. Run `node --test test/cards.test.cjs` and observe red.
-- [ ] Implement the projection; implement the stylesheet and renderer from A; integrate the bundled module. Preserve history disclosure and keyboard focus when rebuilding, and update ordinary badge transitions in place.
-- [ ] Run `node --test` and `node build.cjs`. Verify rendered nested cards, narrow widths, status text and icons, empty and long histories, disclosure preservation and resumption using a browser or real Desktop.
-- [ ] Update the existing global bundle after verifying its previous hash, confirm the server serves the exact new bytes and test live session data. Commit and push the change to the feature PR.
+- [x] Add regression tests for titles and roles, counts, state distinctions, nested grouping, resumption and empty sessions. Run `node --test test/cards.test.cjs` and observe red.
+- [x] Implement the projection; implement the stylesheet and renderer from A; integrate the bundled module. Preserve history disclosure and keyboard focus when rebuilding, and update ordinary badge transitions in place.
+- [x] Run `node --test` and `node build.cjs`. Verify rendered nested cards, narrow widths, status text and icons, empty and long histories, disclosure preservation and resumption using a browser or real Desktop.
+- [x] Update the existing global bundle after verifying its previous hash, confirm the server serves the exact new bytes and test live session data. Commit and push the change to the feature PR.
+
+Evidence: 11 Node tests passed; the 224px Chromium smoke check covered 22 descendants, an active grandchild, disclosure counts and keyboard focus. Two project locations served the exact installed bundle. The live conversation produced two real children, one active and one completed at time of check.

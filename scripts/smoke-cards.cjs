@@ -13,7 +13,8 @@ function scenario(){
   const root=row("root","Пишет ответ",[parent,...Array.from({length:20},(_,i)=>row(String(i),"Завершил работу"))]);
   paint({tree:root});check(count.textContent==="Субагенты: 22","wrong subtree count");
   const fold=()=>branch.querySelector("details");
-  check(!fold().open && fold().querySelector("summary").textContent.includes("22"),"long history not folded");
+  check(!fold().open && fold().querySelector("summary").textContent==="Завершённые · 21","count should match immediate cards under this parent");
+  check(fold().querySelector("details").querySelector("summary").textContent==="Завершённые · 1","nested parent must count its own child");
   const summary=fold().querySelector("summary");summary.click();summary.focus();
   paint({tree:root});check(fold().open && document.activeElement===fold().querySelector("summary"),"lost disclosure/focus");
   fold().open=false;leaf.state="Ждёт разрешения";leaf.task="x".repeat(120);paint({tree:root,changed:leaf});
