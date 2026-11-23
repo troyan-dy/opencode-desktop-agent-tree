@@ -1,7 +1,7 @@
-// Desktop accepts one CJS file. Inline our three modules; use Desktop's own plugin and Solid runtimes.
+// Desktop accepts one CJS file. Inline local modules; use Desktop's own plugin and Solid runtimes.
 const {readFileSync,writeFileSync}=require("node:fs");
 const {join}=require("node:path");
-const modules=["tree","watch","gui"].map(name=>
+const modules=["tree","watch","cards","card-view","gui"].map(name=>
   `${JSON.stringify("./"+name+".cjs")}:function(require,module,exports){\n${readFileSync(join(__dirname,"src",name+".cjs"),"utf8")}\n}`);
 writeFileSync(join(__dirname,"gui-experimental.cjs"),
   `"use strict";\nconst factories={${modules.join(",\n")}};\nconst cache=new Map();\n`+
