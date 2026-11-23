@@ -10,6 +10,7 @@ function toolState(name) {
 }
 
 function executionState(info, running, message) {
+  if (!running && info.time?.busy != null && info.time.busy > (info.time.idle ?? -Infinity)) return "Исход неизвестен";
   if (!running) return outcomes[info.outcome] || "Ожидает";
   if (!message || message.time.completed != null || message.time.created < (info.time?.busy ?? 0)) return "Работает";
   const content = message.content || [];
@@ -18,7 +19,36 @@ function executionState(info, running, message) {
   return content.at(-1)?.type === "text" ? "Пишет ответ" : "Работает";
 }
 
-async function loadTree(client, sessionID, signal) {
+// Jobs are transient, but successful calls stay in the parent transcript. Only
+// completed messages may be checkpoints: an open message can gain more calls.
+async function assignments(client,parentID,children,options,cache) {
+  if (!children.length) return new Map();
+  const prev=cache.get(parentID);
+  const found=new Map();
+  let cursor,head,done=false;
+  do {
+    options.signal.throwIfAborted();
+    const page=await client.message.list({sessionID:parentID,type:"assistant",limit:12,
+      ...(cursor?{cursor}:{order:"desc"})},options);
+    for(const msg of page.data){
+      if(msg.id && msg.id===prev?.head){done=true;break}
+      if(!head && msg.time.completed!=null)head=msg.id;
+      for(const p of [...msg.content].reverse()){
+        if(p.type!=="tool" || p.name!=="subagent" || p.state.status!=="completed")continue;
+        const id=p.state.metadata?.sessionID ?? p.state.input?.sessionID;
+        const description=p.state.input?.description;
+        if(id && description && !found.has(id))
+          found.set(id,{description,started:p.time?.ran ?? p.time?.created ?? msg.time.created});
+      }
+    }
+    cursor=page.cursor?.next;
+  } while(cursor && !done && !children.every(c=>found.has(c.id)));
+  const byId=new Map([...(prev?.byId || []),...found]);
+  cache.set(parentID,{head:head ?? prev?.head,byId});
+  return byId;
+}
+
+async function loadTree(client, sessionID, signal, history=new Map()) {
   const options = {signal};
   let root = await client.session.get({sessionID}, options);
   const ancestors = new Set([root.id]);
@@ -41,7 +71,7 @@ async function loadTree(client, sessionID, signal) {
     signal.throwIfAborted();
     const batch = queue.slice(index,index+6);
     index += batch.length;
-    await Promise.all(batch.map(async ({info,children}) => {
+    await Promise.all(batch.map(async ({info,children,assignment}) => {
       const running = active[info.id]?.type === "running";
       const job = latest.get(info.id);
       const [message, descendants] = await Promise.all([
@@ -49,13 +79,18 @@ async function loadTree(client, sessionID, signal) {
           .then(page=>page.data[0]) : undefined,
         listChildren(client, info.id, options),
       ]);
+      const task=job && (!assignment || job.time.started >= assignment.started) ? job.description : assignment?.description;
+      const tools=running && message && message.time.completed==null && message.time.created >= (info.time?.busy ?? 0)
+        ? message.content.filter(p=>p.type==="tool" && ["streaming","running"].includes(p.state.status)).map(p=>[p.id,p.name]) : [];
       const row = {id:info.id, agent:info.agent || job?.agent || (info.id===root.id?"Основной агент":"Агент"),
-        task:job?.description || info.title || "", state:executionState(info,running,message), children:[]};
+        task:task || info.title || "", state:executionState(info,running,message), tools, children:[]};
       children.push(row);
-      for (const child of descendants) {
-        if (child.fork || child.parentID !== info.id || visited.has(child.id)) continue;
+      const spawned=descendants.filter(child=>!child.fork && child.parentID===info.id);
+      const saved=await assignments(client,info.id,spawned,options,history);
+      for (const child of spawned) {
+        if (visited.has(child.id)) continue;
         visited.add(child.id);
-        queue.push({info:child, children:row.children});
+        queue.push({info:child, children:row.children, assignment:saved.get(child.id)});
       }
     }));
   }

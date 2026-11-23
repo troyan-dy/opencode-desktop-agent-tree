@@ -27,7 +27,7 @@ test("opening a child shows its whole family, with historical and resumed agents
 });
 
 test("the current execution outranks a previous outcome or stale assistant message", () => {
-  const s = {outcome:"succeeded",time:{busy:10}};
+  const s = {outcome:"succeeded",time:{busy:10,idle:14}};
   assert.equal(executionState(s,false),"Завершил работу");
   assert.equal(executionState({...s,outcome:"interrupted"},false),"Остановлен");
   const msg = {type:"assistant",time:{created:11},content:[{type:"tool",name:"grep",state:{status:"running"}}]};
@@ -35,4 +35,22 @@ test("the current execution outranks a previous outcome or stale assistant messa
   assert.equal(executionState(s,true,{...msg,time:{created:4}}),"Работает");
   assert.equal(executionState(s,true,{...msg,time:{created:11,completed:14}}),"Работает");
   assert.equal(executionState({},false),"Ожидает");
+});
+
+test("an interrupted service never attributes the previous success to the next run", () => {
+  for (const time of [{busy:20,idle:10},{busy:20}])
+    assert.equal(executionState({outcome:"succeeded",time},false),"Исход неизвестен");
+});
+
+test("after jobs are consumed a freshly opened panel reads the last successful assignment from parent history", async () => {
+  const root={id:"r",time:{created:1}}, child={id:"c",parentID:"r",title:"First",time:{created:2}};
+  const call=(description,status)=>({type:"tool",name:"subagent",time:{created:6},
+    state:{status,input:{description,sessionID:"c"},metadata:{sessionID:"c"}}});
+  const msg=(id,parts)=>({id,type:"assistant",time:{created:5,completed:7},content:parts});
+  const client={session:{get:async()=>root,active:async()=>({}),
+    list:async({parentID})=>({data:parentID==="r"?[child]:[],cursor:{}})},
+    experimental:{job:{list:async()=>[]}},message:{list:async({cursor})=>cursor?
+      {data:[msg("m1",[call("Latest success","completed")])],cursor:{}}:
+      {data:[msg("m2",[call("Ignored failure","error")])],cursor:{next:"older"}}}};
+  assert.equal((await loadTree(client,"r",new AbortController().signal)).children[0].task,"Latest success");
 });

@@ -14,38 +14,52 @@ const structural = new Set(["session.created","session.deleted","session.renamed
   "session.archived","session.unarchived","experimental.job.updated"]);
 
 function watchTree(server,id,notify,load=loadTree) {
-  const controller=new AbortController();
-  let tree, error, members=new Map(), replay, timer, pending=false, disposed=false;
-  const emit=()=>notify({tree,error});
+  const history=new Map();
+  let tree, error, members=new Map(), tools=new Map(), replay, request, timer, pending=false, disposed=false;
+  let online=server.connected!==false;
+  const emit=()=>notify({tree,error,empty:!!tree && !tree.children.length && !error && online});
   function schedule() {
     if(!timer && !disposed) timer=setTimeout(()=>{timer=null;void refresh()},300);
   }
-  function apply(key,state,update) {
+  function apply(key,name,d,update) {
     const row=members.get(key);
-    if(!row || row.state===state) return;
+    if(!row)return;
+    const calls=tools.get(key);
+    let state=states.get(name);
+    if(name==="session.tool.input.started"){
+      calls.set(d.id,d.name);state=toolState(d.name);
+    } else if(name==="session.tool.success" || name==="session.tool.failed"){
+      const isAssignment=calls.get(d.id)==="subagent" || !!d.metadata?.sessionID;
+      calls.delete(d.id);
+      if(calls.size)state=toolState([...calls.values()].at(-1));
+      if(update && isAssignment && name==="session.tool.success")schedule();
+    } else if(name.startsWith("session.execution."))calls.clear();
+    if(row.state===state)return;
     row.state=state;
     if(update) notify({tree,error,changed:row});
   }
   async function refresh() {
-    if(disposed) return;
+    if(disposed || !online) return;
     if(replay){pending=true;return}
-    replay=new Map();
+    replay=[];
+    const ctrl=new AbortController();request=ctrl;
     try {
-      const next=await load(server.client,id,controller.signal);
-      if(disposed) return;
-      tree=next; members=new Map();
+      const next=await load(server.client,id,ctrl.signal,history);
+      if(ctrl.signal.aborted) return;
+      tree=next; members=new Map();tools=new Map();
       const todo=[tree];
-      while(todo.length){const row=todo.pop();members.set(row.id,row);todo.push(...row.children)}
-      for(const [key,state] of replay) apply(key,state,false);
+      while(todo.length){const row=todo.pop();members.set(row.id,row);tools.set(row.id,new Map(row.tools));todo.push(...row.children)}
+      for(const [key,name,d] of replay) apply(key,name,d,false);
       error=null;emit();
     } catch(e) {
-      if(!disposed){error=e;emit()}
+      if(!ctrl.signal.aborted){error=e;emit()}
     } finally {
-      replay=null;
+      replay=null;request=null;
       if(pending){pending=false;schedule()}
     }
   }
   const off=server.data.listen(({name,details})=>{
+    if(!online)return;
     if(name==="server.connected"){schedule();return}
     if(!states.has(name) && !structural.has(name) && name!=="session.tool.input.started") return;
     const d=details.data, key=d.sessionID ?? d.form?.sessionID ?? d.info?.sessionID;
@@ -55,16 +69,22 @@ function watchTree(server,id,notify,load=loadTree) {
       return;
     }
     if(!key || (!replay && !members.has(key))) return;
-    const state=name==="session.tool.input.started" ? toolState(d.name) : states.get(name);
-    if(replay) replay.set(key,state);
-    apply(key,state,true);
+    const event={id:d.id,name:d.name,metadata:{sessionID:d.metadata?.sessionID}};
+    if(replay)replay.push([key,name,event]);
+    apply(key,name,event,true);
   });
   // Recover missed events and failed snapshots even after a quiet reconnect.
   const interval=setInterval(schedule,60000);
+  if(!online)error=new Error("offline");
   emit();void refresh();
-  return {refresh,close(){
+  return {refresh,connection(connected){
+    if(disposed || online===connected)return;
+    online=connected;
+    if(!online){request?.abort();error=new Error("offline");emit()}
+    else void refresh();
+  },close(){
     if(disposed) return;
-    disposed=true; controller.abort();off();clearTimeout(timer);clearInterval(interval);
+    disposed=true; request?.abort();off();clearTimeout(timer);clearInterval(interval);
   }};
 }
 module.exports={watchTree};

@@ -1,6 +1,6 @@
 "use strict";
 const {Plugin, Panel, MenuItem, Style}=require("@opencode/plugin/gui");
-const {createEffect,onCleanup}=require("solid-js");
+const {createEffect,onCleanup,untrack}=require("solid-js");
 const {watchTree}=require("./watch.cjs");
 
 const css=`
@@ -40,7 +40,7 @@ function panel(props){
   createEffect(()=>{
     const session=props.session, id=session.id, server=session.server;
     let view; const labels=new Map();
-    function item(row,root){
+    function item(row,root,empty){
       const li=el("li"), name=el("div","at-person",root?`Основной агент · ${row.agent}`:row.agent);
       const state=el("span","at-state");status(state,row.state);labels.set(row.id,state);
       li.append(name);
@@ -48,18 +48,19 @@ function panel(props){
       li.append(state);
       if(row.children.length){
         const nested=el("ul");for(const child of row.children)nested.append(item(child,false));li.append(nested);
-      } else if(root)li.append(el("p","at-note","Пока нет дочерних агентов"));
+      } else if(root && empty)li.append(el("p","at-note","Пока нет дочерних агентов"));
       return li;
     }
-    view=watchTree(server,id,({tree,error,changed})=>{
+    view=untrack(()=>watchTree(server,id,({tree,error,changed,empty})=>{
       if(changed && labels.has(changed.id)){status(labels.get(changed.id),changed.state);return}
       note.replaceChildren();labels.clear();branch.replaceChildren();
       if(error){
         note.textContent=tree?"Не удалось обновить дерево. Показаны последние данные.":"Не удалось загрузить дерево.";
         const retry=el("button","","Повторить");retry.type="button";retry.onclick=()=>view.refresh();note.append(retry);
       } else if(!tree)note.textContent="Загрузка дерева…";
-      if(tree)branch.append(item(tree,true));
-    });
+      if(tree)branch.append(item(tree,true,empty));
+    }));
+    createEffect(()=>view.connection(server.connected!==false));
     onCleanup(()=>view.close());
   });
   return box;

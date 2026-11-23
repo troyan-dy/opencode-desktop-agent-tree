@@ -35,3 +35,31 @@ test("an unavailable server is an error, retry restores data, and live activity 
     s.send("session.execution.started",{sessionID:"r"});assert.equal(log.length,count);
   } finally {view.close()}
 });
+
+test("a disconnect immediately invalidates even an empty snapshot until reconnection succeeds", async () => {
+  const s=server(), log=[]; s.connected=true;
+  const view=watchTree(s,"r",x=>log.push(x),async()=>root("r"));
+  try {
+    await tick();assert.equal(log.at(-1).tree.children.length,0);
+    view.connection(false);
+    assert.ok(log.at(-1).error);
+    assert.equal(log.at(-1).empty,false);
+    view.connection(true);
+    await tick();assert.equal(log.at(-1).empty,true);
+    assert.ok(!log.at(-1).error);
+  } finally {view.close()}
+});
+
+test("finishing one tool does not mask the other active call", async () => {
+  const s=server(), log=[];
+  const view=watchTree(s,"r",x=>log.push(x),async()=>root("r"));
+  try {
+    await tick();
+    s.send("session.tool.input.started",{sessionID:"r",id:"t1",name:"grep"});
+    s.send("session.tool.input.started",{sessionID:"r",id:"t2",name:"shell"});
+    s.send("session.tool.success",{sessionID:"r",id:"t1"});
+    assert.equal(log.at(-1).tree.state,"Выполняет команду");
+    s.send("session.tool.failed",{sessionID:"r",id:"t2"});
+    assert.equal(log.at(-1).tree.state,"Работает");
+  } finally {view.close()}
+});

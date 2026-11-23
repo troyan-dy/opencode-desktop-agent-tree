@@ -44,3 +44,5 @@
 - [x] Open the actual Desktop launcher and select «Агенты». Verify the panel renders a root, check a historical tree against the server, and record exactly which checks passed. Commit and push plugin changes for review.
 
 **Installation evidence (Windows, Desktop 2.3.2):** UI Automation invoked the native «Агенты» button and found a tab, a list with the main agent, live shell activity, and the no-children hint. In another conversation, 10 visible finished child rows matched the server's saved session titles and successful outcomes. Two distinct project locations reported the global GUI plugin active.
+
+**Post-review:** Four regressions were reproduced and fixed: old outcomes after an unfinished run, lost assignments after job consumption, stale empty hints after a disconnect and parallel tool status. All eight tests pass. Desktop's GUI endpoint served the exact updated bundle, and the updated loader recovered the review agent's assignment and completed state from the live session.
