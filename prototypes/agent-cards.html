@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Агенты · Три макета панели</title>
+<!-- Throwaway design study: ?variant=all|A|B|C &scene=busy|review|solo. No live sessions. -->
+<style>
+:root{color-scheme:dark;font:14px/1.45 "Segoe UI",system-ui,sans-serif;color:#e9e9ec;background:#161619;--muted:#a4a4ae;--line:#3b3c44;--base:#212127}
+*{box-sizing:border-box}body{margin:0;padding:clamp(14px,3vw,42px) clamp(12px,4vw,52px) 85px}main{max-width:1280px;margin:auto}
+h1,h2,h3,p{margin:0}h1{font-size:clamp(24px,3vw,38px);font-weight:630;letter-spacing:-.045em}h2{font-size:18px;letter-spacing:-.025em}
+.kicker,.small{font-size:11px;font-weight:650;letter-spacing:.09em;text-transform:uppercase;color:#b5a2de}.intro{color:var(--muted);max-width:780px;margin:6px 0 15px}
+.toolbar,.btns,nav,.switches{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.toolbar{margin:15px 0 21px}.toolbar strong{font-size:12px;color:var(--muted);margin-right:6px}
+button,summary{font:inherit;cursor:pointer}button{background:#26262d;color:#d8d9e1;border:1px solid var(--line);border-radius:7px;padding:5px 10px}button:hover,summary:hover{background:#353540}button:focus-visible,summary:focus-visible{outline:2px solid #ccb0ff;outline-offset:2px}
+button[aria-pressed=true]{background:#dfd2f3;border-color:#dfd2f3;color:#27212e}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,298px),1fr));gap:clamp(10px,2vw,25px);align-items:start}
+.single{grid-template-columns:minmax(240px,395px);justify-content:center}.sample{min-width:0}.caption{margin-bottom:8px}.caption .small{color:#b5a2de}.desc{font-size:13px;color:var(--muted);margin:3px 0 9px;min-height:2.9em}
+.pane{background:#1c1c21;border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 8px 22px #0002}
+.tabs{display:flex;gap:12px;align-items:center;padding:9px 12px 0;border-bottom:1px solid var(--line);color:var(--muted);font-size:12px}.tabs b{padding:0 0 7px;border-bottom:2px solid #c4a7f4;color:#f3eff8}.tabs .last{margin-left:auto}
+.inside{padding:12px;overflow:auto;max-height:560px;min-height:200px;scrollbar-width:thin}.session{font-weight:600;font-size:13px;color:#f0eef4}.quiet,.meta,.count,.path{font-size:12px;color:var(--muted)}.head{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:8px}.count{font-variant-numeric:tabular-nums;white-space:nowrap}
+.unit{--ac:#71b6f7;--wash:#203347}.work{--ac:#80c5ff;--wash:#213449}.wait{--ac:#ffd084;--wash:#3a3022}.done{--ac:#8ed8a2;--wash:#22352a}.idle{--ac:#b8b5ca;--wash:#32303b}.error{--ac:#ff9d9a;--wash:#3f272a}
+.card{border:1px solid var(--line);border-left:4px solid var(--ac);border-radius:7px;background:#25252b;margin:6px 0;padding:8px 10px}.card .title{font-size:14px;font-weight:650;overflow-wrap:anywhere}
+.badge{display:inline-flex;align-items:center;gap:5px;color:var(--ac);background:var(--wash);border-radius:5px;font-size:11.5px;font-weight:650;padding:2px 6px;line-height:1.35}.ic{width:14px;height:14px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px}
+.meta{display:block;margin-top:3px}.card .badge{margin-top:6px}.limb{margin-left:9px;padding-left:12px;border-left:1px solid #595966}.limb>.card,.limb>details{position:relative}.limb>.card:before,.limb>details:before{content:"";position:absolute;top:16px;left:-13px;width:11px;border-top:1px solid #595966}
+details{margin-top:8px}summary{padding:4px 3px;border-radius:4px;color:#c9c8d1;font-size:12px}.empty{padding:10px;border:1px dashed #474752;border-radius:7px;color:#bab9c3;font-size:12px;margin-top:8px}.group{margin-top:13px}.group .small{color:#bbb9c6;font-size:10px}.focus{display:flex;gap:8px;align-items:center;margin-bottom:12px;border-bottom:1px solid var(--line);padding-bottom:8px}.focus .badge{margin-left:auto;white-space:nowrap}
+.mini{display:flex;gap:8px;align-items:center;min-width:0;padding:6px 8px;border:1px solid #383840;border-left:3px solid var(--ac);border-radius:5px;background:#24242a;margin:3px 0}.mini strong{font-size:12px;font-weight:600;flex:1}.mini .badge{white-space:nowrap}.mini .path{font-size:10px}
+.navrow{width:100%;display:flex;align-items:center;gap:7px;text-align:left;margin:4px 0;border-left:3px solid var(--ac);border-radius:5px;padding:6px;background:#24242a}.navrow .ic{color:var(--ac)}.navrow .nm{flex:1}.navrow[aria-current=true]{outline:1px solid #baa3d8;background:#322d39}
+.inspector{border:1px solid #51475c;border-radius:8px;background:#29262e;margin-top:12px;padding:12px}.inspector .small{font-size:10px}.inspector h3{font-size:15px;margin:5px 0}.inspector dl{display:grid;grid-template-columns:max-content 1fr;gap:4px 10px;font-size:12px;margin:10px 0 0}.inspector dt{color:var(--muted)}.inspector dd{margin:0}
+nav{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);border:1px solid #5b5664;background:#29272df5;box-shadow:0 7px 30px #0008;padding:5px;border-radius:10px;flex-wrap:nowrap;z-index:2}nav button{padding:5px 9px;white-space:nowrap}
+@media(min-width:1100px){.single .desc{min-height:0}}
+@media(max-width:550px){body{padding:12px 9px 76px}.desc{min-height:0}.grid{gap:20px}.inside{max-height:475px}nav{bottom:6px}nav button{padding:4px 8px}}
+</style>
+<main><div class="kicker">OpenCode Desktop / макет</div><h1>Как читать дерево агентов?</h1>
+<p class="intro">Одна беседа в трёх вариантах. Переключи пример, раскрой историю или выбери агента в варианте C. Все данные демонстрационные.</p>
+<div class="toolbar"><strong>Пример беседы</strong><div class="btns" id="scenes"></div></div>
+<div id="variants" class="grid"></div>
+</main><nav aria-label="Переключить макет"></nav>
+<script>
+const params=new URLSearchParams(location.search), screens=['all','A','B','C'], scenes={busy:'Длинная',review:'Одна проверка',solo:'Без субагентов'};
+let variant=screens.includes(params.get('variant'))?params.get('variant'):'all', scene=Object.hasOwn(scenes,params.get('scene'))?params.get('scene'):'busy', selected;
+const states={work:'Работает',wait:'Ждёт ответа',done:'Завершён',idle:'Ожидает',error:'Ошибка'};
+const paths={work:'<path d="M12 3a9 9 0 1 1-8.5 6"/><path d="m3 4 .5 5 5-.5"/>',wait:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',done:'<circle cx="12" cy="12" r="9"/><path d="m7.5 12 3 3 6-6"/>',idle:'<circle cx="12" cy="12" r="9"/><path d="M10 9v6m4-6v6"/>',error:'<path d="m12 3 10 17H2zM12 9v4m0 3h.01"/>'};
+function icon(s){return `<svg aria-hidden="true" class="ic" viewBox="0 0 24 24">${paths[s]}</svg>`}
+function badge(n){return `<span class="badge">${icon(n.s)}${n.status||states[n.s]}</span>`}
+const row=(id,p,t,role,s,status)=>({id,p,t,role,s,status});
+function data(){
+ const root=row('root',null,'Основной агент','Ведёт беседу',scene==='review'?'idle':'work',scene==='review'?'Ожидает':'Пишет ответ');
+ if(scene==='solo')return [root];
+ if(scene==='review')return [root,row('review','root','Проверить дерево агентов','Универсальный агент','done')];
+ return [root,row('a','root','Проверить навигацию','Исследователь','work','Читает файлы'),row('b','a','Сверить горячие клавиши','Исследователь','wait'),
+ row('c','root','Проверить стили панели','Универсальный агент','work','Сравнивает стили'),
+ ...['Проверить заголовки','Найти иконки','Сверить токены темы','Проверить отступы','Проверить контраст','Разобрать подписи','Проверить пустое состояние','Проверить историю','Сверить фокус'].map((x,i)=>row('h'+i,i===1?'a':'root',x,'Универсальный агент','done'))];
+}
+const name={A:'Карта карточек',B:'Сейчас и история',C:'Навигатор и детали'};
+const blurb={A:'Связи видны сразу: каждая карточка соединена с тем, кто запустил агента.',B:'То, что требует внимания, всегда сверху. Завершённые поручения занимают одну строку.',C:'Сверху — компактное дерево. Выбери строку: ниже появится карточка с пояснениями.'};
+const section=(title,body)=>body?`<section class="group"><div class="small">${title}</div>${body}</section>`:'';
+function card(n,extra=''){return `<div class="card unit ${n.s}"><div class="title">${n.t}</div><span class="meta">${extra||n.role}</span>${badge(n)}</div>`}
+function fold(label,content,count){return count?`<details><summary>${label} · ${count}</summary>${content}</details>`:''}
+function render(){
+ const list=data(), root=list[0], by=Object.fromEntries(list.map(n=>[n.id,n])), kids=id=>list.filter(n=>n.p===id), active=list.slice(1).filter(n=>n.s!=='done'), done=list.slice(1).filter(n=>n.s==='done');
+ if(!by[selected])selected=active.find(n=>n.s==='wait')?.id||active[0]?.id||'root';
+ const empty=list.length===1?'<p class="empty">Субагенты в этой беседе не запускались.</p>':'';
+ const summary=`<div class="head"><span class="session">Агенты беседы</span><span class="count">Субагенты: ${list.length-1}</span></div>`;
+ const parent=n=>n.p==='root'?'Основной агент':by[n.p]?.t;
+ const compact=n=>`<div class="mini unit ${n.s}"><strong>${n.t}<span class="meta path">Запустил: ${parent(n)}</span></strong>${badge(n)}</div>`;
+ function branch(n){
+   const next=kids(n.id),finished=next.filter(c=>c.s==='done');
+   return card(n)+ (next.length?`<div class="limb">${next.filter(c=>c.s!=='done').map(branch).join('')}${fold('Завершённые',finished.map(branch).join(''),finished.length)}</div>`:'');
+ }
+ function variantA(){return summary+branch(root)+empty}
+ function variantB(){const waiting=active.filter(n=>n.s==='wait'),working=active.filter(n=>n.s!=='wait');
+   return `<div class="focus unit ${root.s}"><b>Основной агент</b>${badge(root)}</div>`+
+    section(`Нужен ответ · ${waiting.length}`,waiting.map(n=>card(n,'Запустил: '+parent(n))).join(''))+
+    section(`В работе · ${working.length}`,working.map(n=>card(n,'Запустил: '+parent(n))).join(''))+
+    fold('История завершённых',done.map(compact).join(''),done.length)+empty}
+ function variantC(){
+   const r=n=>`<button class="navrow unit ${n.s}" data-pick="${n.id}" aria-current="${selected===n.id}">${icon(n.s)}<span class="nm">${n.t}</span><span class="quiet">${states[n.s]}</span></button>`;
+   const nav=n=>r(n)+(kids(n.id).some(x=>x.s!=='done')?`<div class="limb">${kids(n.id).filter(x=>x.s!=='done').map(nav).join('')}</div>`:'');
+   const n=by[selected];return summary+nav(root)+fold('Завершённые',done.map(r).join(''),done.length)+empty+
+    `<section class="inspector unit ${n.s}"><div class="small">Выбранный агент</div><h3>${n.t}</h3>${badge(n)}<dl><dt>Роль</dt><dd>${n.role}</dd>${n.p?`<dt>Запустил</dt><dd>${parent(n)}</dd>`:''}<dt>Субагенты</dt><dd>${kids(n.id).length}</dd></dl></section>`
+ }
+ const views={A:variantA,B:variantB,C:variantC},grid=document.querySelector('#variants');
+ const expanded=[...grid.querySelectorAll('details[open]')].map(d=>[d.closest('article').id,d.querySelector('summary').textContent]);
+ grid.className='grid '+(variant==='all'?'':'single');
+ grid.innerHTML=(variant==='all'?screens.slice(1):[variant]).map(k=>`<article id="mock-${k}" class="sample"><div class="caption"><div class="small">Вариант ${k}</div><h2>${name[k]}</h2><p class="desc">${blurb[k]}</p></div><div class="pane"><div class="tabs"><b>Агенты</b><span>Обзор</span><span class="last">＋</span></div><div class="inside">${views[k]()}</div></div></article>`).join('');
+ for(const [id,text] of expanded)for(const d of grid.querySelectorAll('#'+id+' details'))if(d.querySelector('summary').textContent===text)d.open=true;
+ for(const b of grid.querySelectorAll('[data-pick]'))b.onclick=()=>{selected=b.dataset.pick;render();grid.querySelector(`[data-pick="${selected}"]`)?.focus({preventScroll:true})};
+ const toggle=(v,title,attr,on)=>`<button ${attr}="${v}" aria-pressed="${on}">${title}</button>`;
+ document.querySelector('#scenes').innerHTML=Object.entries(scenes).map(([k,v])=>toggle(k,v,'data-example',scene===k)).join('');
+ document.querySelector('nav').innerHTML='<button data-dir="-1" aria-label="Предыдущий макет">←</button>'+screens.map(k=>toggle(k,k==='all'?'Все':k,'data-view',variant===k)).join('')+'<button data-dir="1" aria-label="Следующий макет">→</button>';
+}
+function change(v,s){variant=v;scene=s;selected=null;const u=new URL(location.href);u.searchParams.set('variant',v);u.searchParams.set('scene',s);window.history.replaceState({},'',u);render()}
+function cycle(n){change(screens[(screens.indexOf(variant)+n+4)%4],scene)}
+document.addEventListener('click',e=>{const d=e.target.closest('button')?.dataset;if(!d)return;if(d.example)change(variant,d.example);if(d.view)change(d.view,scene);if(d.dir)cycle(Number(d.dir))});
+document.addEventListener('keydown',e=>{if(e.target.matches('input,textarea,select,[contenteditable=true]'))return;if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();cycle(e.key==='ArrowRight'?1:-1)}});
+render();
+</script></html>
