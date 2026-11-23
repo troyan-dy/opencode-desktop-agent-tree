@@ -14,7 +14,11 @@ function panel(props){
   box.append(note,branch);
   createEffect(()=>{
     const session=props.session, id=session.id, server=session.server;
-    const render=createCardView(branch,count);
+    // The native composer opens /server/<base64url server key>/session/<id>.
+    // Keep this link scoped to the mounted panel, including remote servers.
+    const bytes=new TextEncoder().encode(server.id);
+    const key=btoa(Array.from(bytes,byte=>String.fromCharCode(byte)).join("")).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+    const render=createCardView(branch,count,target=>`/server/${key}/session/${encodeURIComponent(target)}`);
     const view=untrack(()=>watchTree(server,id,update=>{
       render(update);
       if(update.changed)return;

@@ -11,6 +11,9 @@ const css=`
 .oc-agent-tree .at-card{box-sizing:border-box;min-width:0;display:grid;justify-items:start;gap:3px;margin:6px 0;padding:8px 10px;overflow-wrap:anywhere;
  background:var(--v2-background-bg-layer-01,Canvas);border:1px solid var(--v2-border-base,color-mix(in srgb,currentColor 21%,transparent));border-inline-start:4px solid var(--at-ac);border-radius:7px}
 .oc-agent-tree .at-title{font-size:14px;font-weight:600;line-height:1.38}
+.oc-agent-tree a.at-card{color:inherit;text-decoration:none;cursor:pointer}
+.oc-agent-tree a.at-card:hover{background:var(--v2-overlay-simple-overlay-hover,color-mix(in srgb,currentColor 8%,transparent))}
+.oc-agent-tree a.at-card:focus-visible{outline:2px solid var(--at-ac,currentColor);outline-offset:1px}
 .oc-agent-tree .at-role{line-height:1.35}
 .oc-agent-tree .at-state{display:inline-flex;align-items:center;gap:5px;max-width:100%;margin-top:3px;padding:2px 6px;border-radius:5px;font-size:12px;line-height:1.4;font-weight:600;
  background:color-mix(in srgb,var(--at-ac) 14%,transparent);color:var(--v2-text-text-base,CanvasText)}
@@ -53,18 +56,22 @@ function applyBadge(nodes,state){
   nodes.path.setAttribute("d",shapes[mark]);
   nodes.text.textContent=state;
 }
-function createCardView(branch,count){
+function createCardView(branch,count,sessionHref){
   const opened=new Set(),summaries=new Map(),nodes=new Map();
   let lastEmpty=false;
   function display(tree,empty){
     const active=document.activeElement;
     const focus=branch.contains(active)?active?.dataset.historyFor:undefined;
+    const focusedCard=branch.contains(active)?active?.dataset.sessionId:undefined;
     for(const [id,summary] of summaries){
       if(summary.parentElement.open)opened.add(id);else opened.delete(id);
     }
     summaries.clear();nodes.clear();
     function item(row){
-      const li=el("li"),card=el("div","at-card"),badge=el("span","at-state");
+      const li=el("li"),card=el("a","at-card"),badge=el("span","at-state");
+      card.href=sessionHref(row.id);
+      card.dataset.sessionId=row.id;
+      card.title=`Открыть диалог: ${row.title}`;
       const svg=document.createElementNS("http://www.w3.org/2000/svg","svg"),path=document.createElementNS(svg.namespaceURI,"path");
       svg.setAttribute("viewBox","0 0 24 24");svg.setAttribute("aria-hidden","true");svg.append(path);
       const text=el("span");badge.append(svg,text);
@@ -89,6 +96,11 @@ function createCardView(branch,count){
     if(empty && !map.count)root.append(el("p","at-empty","Субагенты в этой беседе не запускались."));
     branch.replaceChildren(root);
     if(focus)summaries.get(focus)?.focus({preventScroll:true});
+    if(focusedCard){
+      const card=nodes.get(focusedCard)?.card;
+      const closed=card?.closest("details:not([open])");
+      (closed?.querySelector("summary")??card)?.focus({preventScroll:true});
+    }
   }
   return ({tree,empty,changed})=>{
     if(!changed)lastEmpty=empty;
